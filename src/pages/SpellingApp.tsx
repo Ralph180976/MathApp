@@ -124,7 +124,7 @@ export default function SpellingApp() {
         <button className="glass-panel" onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
           <ArrowLeft size={16} /> Back to Home
         </button>
-        <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '2rem' }}>
+        <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '0.75rem' }}>
           Spelling Level <strong style={{ color: 'var(--purple)' }}>{sessionLevel}</strong>
         </div>
       </div>

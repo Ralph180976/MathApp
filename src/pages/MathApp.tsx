@@ -252,16 +252,16 @@ export default function MathApp() {
         display: 'flex', 
         flexDirection: 'column', 
         overflow: 'hidden',
-        marginBottom: '-1rem', // Break out of main padding to hit the bottom edge
-        padding: '1rem',
+        marginBottom: '0', 
+        padding: '0',
         paddingBottom: 0
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <button className="glass-panel" onClick={() => setOperation(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
           <ArrowLeft size={16} /> Change Subject
         </button>
-        <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '2rem' }}>
+        <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '0.75rem' }}>
           Level <strong style={{ color: 'var(--primary)' }}>{sessionLevel}</strong>
         </div>
       </div>

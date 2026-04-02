@@ -13,12 +13,10 @@ export const MathKeypad: React.FC<MathKeypadProps> = ({ onInput, onClear, onSubm
       <div 
         className="glass-panel" 
         style={{ 
-          padding: '0.4rem', 
-          width: 'calc(100% + 2rem + 10px)',
-          marginLeft: 'calc(-1rem - 5px)',
-          marginRight: 'calc(-1rem - 5px)',
+          padding: '0', 
+          width: '100%',
           height: '226px',
-          marginBottom: '13px',
+          marginBottom: '0',
           background: 'rgba(15, 23, 42, 0.98)',
           border: 'none',
           borderRadius: '1.2rem 1.2rem 0 0'
