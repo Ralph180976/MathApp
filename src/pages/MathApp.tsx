@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, HelpCircle, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../store';
 import { MathKeypad } from '../components/MathKeypad';
+
 
 type Operation = '+' | '-' | '*' | '/' | 'Random';
 
@@ -168,6 +169,59 @@ export default function MathApp() {
   const [question, setQuestion] = useState<Question | null>(null);
   const [answerInput, setAnswerInput] = useState('');
   const [busStopInputHandler, setBusStopInputHandler] = useState<((val: string) => void) | null>(null);
+  const [isHelping, setIsHelping] = useState(false);
+  const [helpStep, setHelpStep] = useState(0);
+
+
+  const resetHelp = () => {
+    setIsHelping(false);
+    setHelpStep(0);
+  };
+
+  // Help solver derived values (units → tens → hundreds, right-to-left)
+  const helpDigits1 = question ? question.num1.toString().split('') : [];
+  const helpDigits2 = question ? question.num2.toString().split('') : [];
+  const helpMaxLen = Math.max(helpDigits1.length, helpDigits2.length);
+  const helpPad1 = question ? question.num1.toString().padStart(helpMaxLen, '0').split('') : [];
+  const helpPad2 = question ? question.num2.toString().padStart(helpMaxLen, '0').split('') : [];
+  const helpTotalSteps = helpMaxLen + 1;
+  const helpColumnNames = ['Units', 'Tens', 'Hundreds', 'Thousands'];
+  const helpActiveColFromRight = helpStep >= 1 && helpStep <= helpMaxLen ? helpStep : -1;
+  const helpActiveIdx = helpActiveColFromRight > 0 ? helpMaxLen - helpActiveColFromRight : -1;
+
+  // Compute column results with carries/borrows
+  const helpColumns: { d1: number; d2: number; borrow: number; displayD1: number; result: number; answerDigit: number; carryOut: number; borrowed: boolean }[] = [];
+  {
+    let borrow = 0;
+    for (let col = 1; col <= helpMaxLen; col++) {
+      const idx = helpMaxLen - col;
+      const d1 = parseInt(helpPad1[idx]) || 0;
+      const d2 = parseInt(helpPad2[idx]) || 0;
+      if (question?.op === '+') {
+        const sum = d1 + d2 + borrow;
+        helpColumns.push({ d1, d2, borrow, displayD1: d1, result: sum, answerDigit: sum % 10, carryOut: Math.floor(sum / 10), borrowed: false });
+        borrow = Math.floor(sum / 10);
+      } else {
+        const top = d1 - borrow;
+        const needsBorrow = top < d2;
+        const displayD1 = needsBorrow ? top + 10 : top;
+        const result = displayD1 - d2;
+        helpColumns.push({ d1, d2, borrow, displayD1, result, answerDigit: result, carryOut: needsBorrow ? 1 : 0, borrowed: needsBorrow });
+        borrow = needsBorrow ? 1 : 0;
+      }
+    }
+  }
+  const helpColResult = helpStep >= 1 && helpStep <= helpMaxLen ? helpColumns[helpStep - 1] : null;
+
+  // Exchange annotations: for each digit position (left-to-right), the exchanged value if different from original
+  const helpExchangeAnnotations: (number | null)[] = helpPad1.map((_, i) => {
+    const colFromRight = helpMaxLen - i; // 1-indexed
+    const colIdx = colFromRight - 1; // 0-indexed into helpColumns
+    if (colIdx < 0 || colIdx >= helpColumns.length) return null;
+    const col = helpColumns[colIdx];
+    if (col.displayD1 !== col.d1) return col.displayD1;
+    return null;
+  });
 
   const startGame = (op: Operation) => {
     setOperation(op);
@@ -180,6 +234,7 @@ export default function MathApp() {
       }
     }
     setSessionLevel(levelToUse);
+    resetHelp();
     nextQuestion(op, levelToUse);
   };
 
@@ -188,6 +243,7 @@ export default function MathApp() {
     setAnswerInput('');
     setQuestion(generateQuestion(level, op));
     setStartTime(Date.now());
+    resetHelp();
   };
 
   const handleLevelChange = (delta: number) => {
@@ -266,7 +322,40 @@ export default function MathApp() {
         </div>
       </div>
 
-      <div className="card" style={{ textAlign: 'center', padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      <div className="card" style={{ 
+        textAlign: 'center', 
+        padding: '1rem', 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center', 
+        position: 'relative', 
+        overflow: 'hidden',
+        border: isHelping ? '2px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        {question && (question.op === '+' || question.op === '-') && !feedback && !isHelping && (
+          <button 
+            onClick={() => setIsHelping(true)}
+            style={{ 
+              position: 'absolute', 
+              bottom: '1rem', 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              padding: '0.5rem 1rem', 
+              fontSize: '0.9rem', 
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid var(--primary)',
+              color: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              zIndex: 10,
+              borderRadius: '2rem'
+            }}
+          >
+            <HelpCircle size={16} /> Help Me
+          </button>
+        )}
         <AnimatePresence mode="popLayout">
           {question && (
             <motion.div key={`${question.num1}-${question.op}-${question.num2}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -280,19 +369,229 @@ export default function MathApp() {
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', width: '180px', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', width: '180px', alignItems: 'flex-end', marginTop: isHelping ? '1.5rem' : 'auto', marginBottom: isHelping ? '0' : 'auto', transition: 'margin 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}>
                     <div style={{ fontSize: '3.5rem', fontWeight: 800, fontFamily: "'Fredoka One', cursive", display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: '1.1', marginBottom: '1rem', width: '100%' }}>
-                      <div style={{ paddingRight: '0.5rem' }}>{question.num1}</div>
-                      <div style={{ display: 'flex', borderBottom: '6px solid var(--text-primary)', paddingBottom: '0.3rem', width: '100%', justifyContent: 'space-between' }}>
+                      {/* Exchange annotations row - shown above digits when subtracting with exchange */}
+                      {isHelping && question.op === '-' && helpStep >= 1 && helpExchangeAnnotations.some(a => a !== null) && (
+                        <div style={{ 
+                          paddingRight: 'calc(0.5rem + 10px)', 
+                          display: 'flex', 
+                          justifyContent: 'flex-end',
+                          gap: '20px',
+                          fontSize: '2.2rem',
+                          lineHeight: 1,
+                          marginBottom: '0.1rem'
+                        }}>
+                          {helpDigits1.map((_, i) => {
+                            const annotation = helpExchangeAnnotations[i];
+                            const colFromRight = helpDigits1.length - i;
+                            const colStep = colFromRight;
+                            const isVisible = annotation !== null;
+                            const isActive = helpStep === colStep;
+                            const isPast = helpStep > colStep;
+                            return (
+                              <span key={i} style={{ 
+                                fontWeight: 700,
+                                fontFamily: "'Fredoka One', cursive",
+                                color: isActive ? 'var(--success)' : isPast ? 'rgba(255,255,255,0.3)' : 'var(--warning)',
+                                opacity: isVisible ? 1 : 0,
+                                transition: 'all 0.3s',
+                                textAlign: 'right',
+                                width: '1ch',
+                                overflow: 'visible',
+                                whiteSpace: 'nowrap'
+                              }}>{annotation !== null ? annotation : '\u00A0'}</span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Num1 digits */}
+                      <div style={{ 
+                        paddingRight: '0.5rem', 
+                        display: 'flex', 
+                        justifyContent: 'flex-end'
+                      }}>
+                        {helpDigits1.map((d, i) => {
+                          const colFromRight = helpDigits1.length - i;
+                          const colStep = colFromRight;
+                          const annotation = helpExchangeAnnotations[i];
+                          const hasExchange = isHelping && question.op === '-' && annotation !== null && helpStep >= 1;
+                          const isActive = isHelping && helpStep === colStep && !hasExchange;
+                          return (
+                            <span key={i} style={{ 
+                              color: hasExchange ? 'rgba(255,255,255,0.2)' : (isActive ? 'var(--success)' : 'inherit'),
+                              textDecoration: hasExchange ? 'line-through' : 'none',
+                              textDecorationColor: 'var(--danger)',
+                              transition: 'all 0.3s'
+                            }}>{d}</span>
+                          );
+                        })}
+                      </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        borderBottom: '6px solid var(--text-primary)', 
+                        paddingBottom: '0.3rem', 
+                        width: '100%', 
+                        justifyContent: 'space-between'
+                      }}>
                         <span style={{ color: 'var(--primary)', paddingRight: '1rem', alignSelf: 'flex-end' }}>{question.op === '*' ? '×' : question.op}</span>
-                        <span style={{ paddingRight: '0.5rem' }}>{question.num2}</span>
+                        <div style={{ 
+                          paddingRight: '0.5rem', 
+                          display: 'flex', 
+                          justifyContent: 'flex-end' 
+                        }}>
+                          {helpDigits2.map((d, i) => {
+                            const idxFromRight = helpDigits2.length - 1 - i;
+                            const colStep = idxFromRight + 1;
+                            return (
+                              <span key={i} style={{ 
+                                color: isHelping && helpStep === colStep ? 'var(--success)' : 'inherit',
+                                transition: 'color 0.3s'
+                              }}>{d}</span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ width: '100%', fontSize: '3rem', fontFamily: "'Fredoka One', cursive", textAlign: 'right', padding: '0 0.5rem 0 0', height: '4rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                      {answerInput || <span style={{ opacity: 0.3 }}>?</span>}
+                    <div style={{ 
+                      width: '100%', 
+                      fontSize: '3.5rem', 
+                      fontWeight: 800, 
+                      fontFamily: "'Fredoka One', cursive", 
+                      textAlign: 'right', 
+                      padding: '0 0.5rem 0 0', 
+                      height: '4rem', 
+                      borderRadius: '0.75rem', 
+                      background: 'rgba(255,255,255,0.05)', 
+                      border: '2px solid rgba(255,255,255,0.1)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'flex-end',
+                      color: isHelping && helpStep > helpMaxLen ? 'var(--success-dark)' : 'inherit'
+                    }}>
+                      {isHelping && helpStep >= 1 ? (
+                        helpStep > helpMaxLen ? (
+                          <span style={{ color: 'var(--success-dark)' }}>{question.answer}</span>
+                        ) : (
+                          <div style={{ display: 'flex' }}>
+                            {question.answer.toString().split('').map((d, i, arr) => {
+                              const idxFromRight = arr.length - 1 - i;
+                              const colStep = idxFromRight + 1;
+                              const revealed = helpStep >= colStep || (colStep > helpMaxLen && helpStep >= helpMaxLen);
+                              const isHighlighted = helpStep === colStep || (colStep > helpMaxLen && helpStep >= helpMaxLen);
+                              return (
+                                <span key={i} style={{ 
+                                  opacity: revealed ? 1 : 0.15, 
+                                  color: isHighlighted ? 'var(--success-dark)' : 'var(--text-primary)',
+                                  transition: 'all 0.3s'
+                                }}>{revealed ? d : '?'}</span>
+                              );
+                            })}
+                          </div>
+                        )
+                      ) : (
+                        answerInput || <span style={{ opacity: 0.3 }}>?</span>
+                      )}
                     </div>
+                    {isHelping && question.op === '+' && helpStep >= 1 && helpStep <= helpMaxLen && (() => {
+                      // Show carry from the previous column if it exists
+                      const prevCol = helpStep >= 2 ? helpColumns[helpStep - 2] : null;
+                      const currentCol = helpColumns[helpStep - 1];
+                      const showCarryFromPrev = prevCol && prevCol.carryOut > 0;
+                      const showCarryFromCurrent = currentCol && currentCol.carryOut > 0;
+                      if (!showCarryFromPrev && !showCarryFromCurrent) return null;
+                      return (
+                      <div style={{ 
+                        paddingRight: '0.5rem', 
+                        display: 'flex', 
+                        justifyContent: 'flex-end',
+                        marginTop: '0.2rem'
+                      }}>
+                        {question.answer.toString().split('').map((_, i, arr) => {
+                          const idxFromRight = arr.length - 1 - i;
+                          const colStep = idxFromRight + 1;
+                          // Show carry generated by current step (for next column)
+                          const isCurrentCarry = showCarryFromCurrent && colStep === helpStep + 1;
+                          // Show carry from previous step (being used in current column)
+                          const isPrevCarry = showCarryFromPrev && colStep === helpStep;
+                          const showCarry = (isCurrentCarry || isPrevCarry) && colStep <= helpMaxLen;
+                          const carryVal = isCurrentCarry ? currentCol.carryOut : (isPrevCarry && prevCol ? prevCol.carryOut : 0);
+                          return (
+                            <span key={i} style={{ 
+                              fontSize: '3.5rem', 
+                              fontWeight: 800,
+                              fontFamily: "'Fredoka One', cursive",
+                              textAlign: 'center',
+                              visibility: showCarry ? 'visible' : 'hidden',
+                              color: isCurrentCarry ? 'var(--success-dark)' : 'var(--success)',
+                              transition: 'color 0.3s'
+                            }}>{showCarry ? carryVal : '0'}</span>
+                          );
+                        })}
+                      </div>
+                      );
+                    })()}
                   </div>
+
+                  {isHelping && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{ 
+                        width: '100%',
+                        marginTop: 'auto',
+                        paddingBottom: '0.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div className="title-font" style={{ fontSize: '1.4rem', marginBottom: '0.3rem', color: 'var(--primary)' }}>
+                        {helpStep === 0 && "Let's solve it!"}
+                        {helpStep >= 1 && helpStep <= helpMaxLen && helpColResult && (
+                          <span style={{ color: 'var(--success)' }}>
+                            {question.op === '+' ? (
+                              <>
+                                {helpColResult.d1} + {helpColResult.d2}
+                                {helpColResult.borrow > 0 ? ` + ${helpColResult.borrow}` : ''}
+                                {' = '}
+                              </>
+                            ) : (
+                              <>
+                                {helpColResult.displayD1} − {helpColResult.d2} ={' '}
+                              </>
+                            )}
+                            <span style={{ color: 'var(--success-dark)' }}>{helpColResult.result}</span>
+                          </span>
+                        )}
+                        {helpStep > helpMaxLen && <span style={{ color: 'var(--success-dark)' }}>Answer: {question.answer}</span>}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.8rem', lineHeight: 1.5, maxWidth: '260px' }}>
+                        {helpStep === 0 && "Start from the ones"}
+                        {helpStep >= 1 && helpStep <= helpMaxLen && helpColResult && (
+                          question.op === '-' && helpColResult.borrowed
+                            ? (() => {
+                                const nextColD1 = helpStep < helpMaxLen ? parseInt(helpPad1[helpMaxLen - helpStep - 1]) || 0 : 0;
+                                return `We take 1 from the ${nextColD1}, making it ${nextColD1 - 1}. The ${helpColResult.d1} becomes ${helpColResult.displayD1}`;
+                              })()
+                            : `${helpColumnNames[helpStep - 1]} column`
+                        )}
+                        {helpStep > helpMaxLen && "All together!"}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (helpStep < helpTotalSteps) setHelpStep(helpStep + 1);
+                          else resetHelp();
+                        }}
+                        className="btn-primary" 
+                        style={{ padding: '0.6rem 2rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '2rem' }}
+                      >
+                        {helpStep < helpTotalSteps ? 'Next' : 'Got it!'} <ChevronRight size={16} />
+                      </button>
+                    </motion.div>
+                  )}
                   {feedback && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ marginTop: '1.5rem', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: feedback === 'correct' ? 'var(--success)' : 'var(--danger)' }}>
                       {feedback === 'correct' ? <><CheckCircle size={24} /> Awesome job!</> : <><XCircle size={24} /> Oops, try again!</>}
