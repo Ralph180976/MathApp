@@ -18,10 +18,16 @@ const Header = () => {
         <span style={{ fontSize: '2.5rem' }}>{currentUser.avatar}</span>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <h2 className="title-font" style={{ fontSize: '1.2rem', margin: 0, lineHeight: 1.2 }}>{currentUser.name}</h2>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
             <span>Math (+{currentUser.mathLevels['+']} -{currentUser.mathLevels['-']} ×{currentUser.mathLevels['*']} ÷{currentUser.mathLevels['/']})</span>
             <span>•</span>
             <span>Spelling {currentUser.spellingLevel}</span>
+            {currentUser.stats && Object.values(currentUser.stats.scores).reduce((a, b) => a + b, 0) > 0 && (
+              <>
+                <span>•</span>
+                <span style={{ color: 'var(--warning)' }}>⭐ {Object.values(currentUser.stats.scores).reduce((a, b) => a + b, 0)} pts</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -40,7 +46,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppContent = () => {
   return (
-    <Router>
+    <Router basename="/MathApp">
       <Header />
       <main className="main-content">
         <Routes>

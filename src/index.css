@@ -29,14 +29,23 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-color);
   color: var(--text-primary);
-  min-height: 100vh;
-  min-width: 100vw;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: none;
 }
 
 #root {
@@ -44,6 +53,7 @@ body {
   flex-direction: column;
   flex: 1;
   height: 100%;
+  overflow: hidden;
 }
 
 .title-font {
@@ -84,8 +94,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  outline: 2px solid white;
-  outline-offset: 2px;
+  /* Provide subtle visual feedback without sticky outlines on touch */
+  opacity: 0.9;
 }
 
 button:disabled {
@@ -125,14 +135,12 @@ button:disabled {
   border-radius: var(--border-radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-md);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.1s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  outline: 2px solid white;
-  outline-offset: 2px;
 }
 
 input {
@@ -180,6 +188,8 @@ input[type="number"] {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {

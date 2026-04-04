@@ -1,0 +1,19 @@
+{
+  "name": "EduQuest - Learn & Play",
+  "short_name": "EduQuest",
+  "description": "Fun maths and spelling challenges for children",
+  "start_url": "/MathApp/",
+  "scope": "/MathApp/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/MathApp/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
