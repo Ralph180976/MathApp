@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eduquest-v1';
+const CACHE_NAME = 'eduquest-v2';
 const BASE_PATH = '/MathApp/';
 
 // Install: cache core app files
