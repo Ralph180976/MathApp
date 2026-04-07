@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Flame, Zap, BookOpen } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Flame, Zap, BookOpen, PlusCircle, MinusCircle } from 'lucide-react';
 import { useAppContext, calculateSpellingScore, BADGE_DEFS } from '../store';
 import { getWordForLevel, getSpellingLevelDescription } from '../data/wordBank';
 import type { WordEntry } from '../data/wordBank';
@@ -22,6 +22,7 @@ export default function SpellingApp() {
   const [sessionScore, setSessionScore] = useState(0);
   const [lastPoints, setLastPoints] = useState<{ total: number; speedBonus: number; lengthBonus: number; streakMultiplier: number } | null>(null);
   const [newBadgePopup, setNewBadgePopup] = useState<string | null>(null);
+  const [showLevelUpPrompt, setShowLevelUpPrompt] = useState(false);
   const [, setCorrectCount] = useState(0);
 
   const startGame = () => {
@@ -35,6 +36,7 @@ export default function SpellingApp() {
     setInputText('');
     setFeedback(null);
     setLastPoints(null);
+    setShowLevelUpPrompt(false);
   };
 
   const handleReady = () => {
@@ -75,12 +77,12 @@ export default function SpellingApp() {
       
       setFeedback('correct');
       
-      // Level up every 5 correct in a row, or fast answers
-      if (newStreak % 5 === 0 || (timeTaken < 8 && newStreak >= 3)) {
-        handleLevelChange(1);
+      // Suggest level up instead of forcing it
+      if ((newStreak % 5 === 0 || (timeTaken < 8 && newStreak >= 3)) && sessionLevel < 20) {
+        setShowLevelUpPrompt(true);
+      } else {
+        setTimeout(() => nextWord(sessionLevel), 2000);
       }
-      
-      setTimeout(() => nextWord(sessionLevel), 2000);
     } else {
       setFeedback('incorrect');
       setStreak(0);
@@ -121,9 +123,17 @@ export default function SpellingApp() {
         </h1>
         
         {/* Level info */}
-        <div className="glass-panel" style={{ padding: '0.8rem 1.2rem', marginBottom: '1.5rem', display: 'inline-block', borderRadius: '2rem' }}>
-          Level <strong style={{ color: 'var(--purple)' }}>{sessionLevel}</strong>
-          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>· {levelDesc}</span>
+        <div className="glass-panel" style={{ padding: '0.4rem 1.2rem', marginBottom: '1.5rem', display: 'inline-flex', alignItems: 'center', gap: '1rem', borderRadius: '2rem' }}>
+          <button onClick={() => handleLevelChange(-1)} disabled={sessionLevel <= 1} style={{ background: 'transparent', border: 'none', cursor: 'pointer', opacity: sessionLevel <= 1 ? 0.3 : 1, display: 'flex', alignItems: 'center' }}>
+            <MinusCircle size={24} color="var(--primary)" />
+          </button>
+          <div style={{ minWidth: '120px' }}>
+            Level <strong style={{ color: 'var(--purple)' }}>{sessionLevel}</strong>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '0.2rem' }}>{levelDesc}</div>
+          </div>
+          <button onClick={() => handleLevelChange(1)} disabled={sessionLevel >= 20} style={{ background: 'transparent', border: 'none', cursor: 'pointer', opacity: sessionLevel >= 20 ? 0.3 : 1, display: 'flex', alignItems: 'center' }}>
+            <PlusCircle size={24} color="var(--primary)" />
+          </button>
         </div>
 
         <div className="card" style={{ padding: '3rem 2rem' }}>
@@ -395,6 +405,16 @@ export default function SpellingApp() {
                           </div>
                           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                             <strong style={{ color: 'var(--text-primary)' }}>{currentEntry.word}</strong> — {currentEntry.definition}
+                          </div>
+                        </motion.div>
+                      )}
+                      
+                      {showLevelUpPrompt && (
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                          <div style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '1.1rem' }}>You're on fire! 🔥 Ready for a harder level?</div>
+                          <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                            <button className="btn-secondary" onClick={() => nextWord(sessionLevel)} style={{ padding: '0.6rem 1.5rem', borderRadius: '2rem', fontSize: '1rem' }}>Stay Level {sessionLevel}</button>
+                            <button className="btn-primary" onClick={() => { handleLevelChange(1); nextWord(sessionLevel + 1); }} style={{ padding: '0.6rem 1.5rem', borderRadius: '2rem', fontSize: '1rem', background: 'var(--success)', border: 'none' }}>Level Up! 🚀</button>
                           </div>
                         </motion.div>
                       )}
