@@ -265,6 +265,11 @@ export default function Login() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Version Number */}
+      <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)', zIndex: 10 }}>
+        v1.0.1
+      </div>
     </div>
   );
 }

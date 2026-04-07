@@ -326,7 +326,7 @@ export default function SpellingApp() {
                   type="text" 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value.toUpperCase())}
-                  disabled={feedback === 'correct'}
+                  disabled={feedback !== null}
                   autoFocus
                   maxLength={currentEntry.word.length + 2}
                   style={{ 
@@ -346,7 +346,7 @@ export default function SpellingApp() {
                 />
                 <button 
                   type="submit" 
-                  disabled={!inputText || feedback === 'correct'} 
+                  disabled={!inputText || feedback !== null} 
                   className="btn-primary" 
                   style={{ fontSize: '1.2rem', padding: '0.5rem 2.5rem', borderRadius: '2rem' }}
                 >
@@ -428,7 +428,7 @@ export default function SpellingApp() {
                         style={{ marginTop: '0.8rem', padding: '0.5rem 2rem', borderRadius: '2rem' }} 
                         onClick={() => nextWord(sessionLevel)}
                       >
-                        Try Another →
+                        New Word →
                       </button>
                     </>
                   )}

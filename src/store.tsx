@@ -251,11 +251,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-      const savedUserId = localStorage.getItem('edu-current-user');
-      if (savedUserId) {
-          const userArr = localStorage.getItem('edu-users');
-          const parsedUsers = userArr ? JSON.parse(userArr).map(migrateUser) : defaultUsers;
-          return parsedUsers.find((u: User) => u.id === savedUserId) || null;
+      const userArr = localStorage.getItem('edu-users');
+      const parsedUsers = userArr ? JSON.parse(userArr).map(migrateUser) : defaultUsers;
+      
+      if (parsedUsers.length === 1) {
+          return parsedUsers[0];
       }
       return null;
   });
